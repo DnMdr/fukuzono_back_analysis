@@ -1,0 +1,12 @@
+# venv
+venv
+
+# cache
+__pycache__
+
+# output
+output/*
+
+# input
+data/*
+
