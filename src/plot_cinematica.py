@@ -2,6 +2,7 @@ from pathlib import Path
 
 import matplotlib.pyplot as plt
 import pandas as pd
+import seaborn as sns
 
 
 def genera_grafici_cinematici_pdf(config):
@@ -112,5 +113,103 @@ def genera_grafici_cinematici_pdf(config):
 
         fig.savefig(plot_dir / f"cinematica_{sensore}.pdf")
         plt.show()
+
+        print(f"PDF salvato: cinematica_{sensore}.pdf")
+
+
+def genera_grafici_cinematici_log(config):
+    """Genera i PDF con spostamento e velocità per ciascun sensore, a partire dalla data di inizio analisi."""
+
+    # Imposta lo stile di seaborn
+    sns.set_theme(style="whitegrid", context="notebook")
+
+    out_dir = Path(config.output_dir)
+    plot_dir = out_dir / "grafici_cinematici_pdf"
+    plot_dir.mkdir(parents=True, exist_ok=True)
+
+    # 1. Caricamento dati
+    df_s = pd.read_parquet(out_dir / "spostamenti.parquet")
+    df_v = pd.read_parquet(out_dir / "velocita.parquet")
+
+    # 2. Taglio temporale dinamico dalla dataclass config
+    start_date = pd.to_datetime(config.start_analysis)
+    df_s = df_s.loc[start_date:]
+    df_v = df_v.loc[start_date:]
+
+    # Azzera lo spostamento iniziale
+    if not df_s.empty:
+        df_s = df_s - df_s.iloc[0]
+
+    # 3. Iterazione su tutti i sensori presenti nel dataframe
+    for sensore in df_s.columns:
+        fig, ax1 = plt.subplots(figsize=(12, 6), layout="constrained")
+        ax2 = ax1.twinx()
+
+        # CONTROLLO COMPRESSIONE: se il trend finale è negativo, invertiamo il segno
+        s_data = df_s[sensore]
+        is_compressione = s_data.iloc[-1] < 0
+
+        if is_compressione:
+            s_data = s_data * -1
+            label_s = r"Spostamento $\Delta s$ (Compressione) [mm]"
+        else:
+            label_s = r"Spostamento $\Delta s$ (Trazione) [mm]"
+
+        # Plot Spostamento (Asse Y sinistro, Colore scuro)
+        col_s = "#2c3e50"
+        line1 = ax1.plot(
+            s_data.index,
+            s_data,
+            color=col_s,
+            lw=2.5,
+            label=label_s,
+        )
+
+        # Plot Velocità (Asse Y destro, Colore acceso)
+        col_v = "#e74c3c"
+        line2 = ax2.plot(
+            df_v.index,
+            df_v[sensore],
+            color=col_v,
+            lw=1.5,
+            alpha=0.8,
+            label=r"Velocità $v$ [mm/giorno]",
+        )
+
+        # Formattazione Titoli e Label
+        ax1.set_title(
+            f"Spostamento e Velocità Globale - {sensore}",
+            fontsize=14,
+            fontweight="bold",
+            pad=10,
+        )
+
+        ax1.set_ylabel(label_s, color=col_s, fontweight="bold")
+        ax2.set_ylabel(r"Velocità $v$ [mm/giorno]", color=col_v, fontweight="bold")
+
+        # IMPOSTAZIONE SCALE LOGARITMICHE (symlog per gestire lo 0 iniziale e eventuali valori negativi di rumore)
+        ax1.set_yscale(
+            "symlog", linthresh=0.1
+        )  # Sotto 0.1 mm diventa lineare per includere lo 0
+
+        # Colora i numeri sugli assi per renderli associabili alle linee
+        ax1.tick_params(axis="y", colors=col_s)
+        ax2.tick_params(axis="y", colors=col_v)
+
+        # Disabilita la griglia secondaria
+        ax2.grid(False)
+
+        # Unisci le legende
+        lines = line1 + line2
+        labels = [l.get_label() for l in lines]
+        ax1.legend(lines, labels, loc="upper left", framealpha=0.95)
+
+        # Inclina le date sull'asse X per evitare sovrapposizioni
+        ax1.tick_params(axis="x", labelbottom=True)
+        plt.setp(ax1.get_xticklabels(), rotation=30, ha="right")
+
+        # Salvataggio e pulizia
+        fig.savefig(plot_dir / f"cinematica_{sensore}.pdf")
+        plt.close(fig)
 
         print(f"PDF salvato: cinematica_{sensore}.pdf")

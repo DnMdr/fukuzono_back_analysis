@@ -68,5 +68,4 @@ def plot_risultati_finestre(
     plt.tight_layout()
 
     fig.savefig(output_path, dpi=300, bbox_inches="tight")
-    print(f"Grafico salvato con successo in: {output_path}")
     plt.close()

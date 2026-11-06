@@ -81,8 +81,8 @@ def preparazione_dataset(config: ConfigurazioneAnalisiFukuzono) -> pd.DataFrame:
     # 1. Pipeline di calcolo
     df = _carica_dati(config)
     df = _taglia_dati(df, config)
-    df = _interpola_dati(df, config)
-    df_trazione = _filtra_sensori_trazione(df)
+    df_clean = _interpola_dati(df, config)
+    df_trazione = _filtra_sensori_trazione(df_clean)
     df_velocita = _calcola_velocita(df_trazione, config)
     df_creep_terziario = _estrai_creep_terziario(df_velocita, config)
     df_inverso_velocita = _calcola_velocita_inversa(df_creep_terziario, config)
@@ -92,6 +92,7 @@ def preparazione_dataset(config: ConfigurazioneAnalisiFukuzono) -> pd.DataFrame:
         out_dir = Path(config.output_dir)
         out_dir.mkdir(parents=True, exist_ok=True)
 
+        df_clean.to_parquet(out_dir / "spostamenti.parquet")
         df_trazione.to_parquet(out_dir / "spostamenti_trazione.parquet")
         df_velocita.to_parquet(out_dir / "velocita.parquet")
         df_inverso_velocita.to_parquet(out_dir / "inverso_velocita.parquet")

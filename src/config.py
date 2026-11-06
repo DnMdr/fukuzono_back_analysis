@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from tabnanny import verbose
 
 import pandas as pd
 
@@ -15,6 +16,9 @@ class ConfigurazioneAnalisiFukuzono:
 
     # --- SAVE INTERMEDIO ---
     save_path: bool
+
+    # --- DEBUG ---
+    verbose: bool
 
     # --- STRUTTURA DATI ---
     colonna_timestamp: list[str]
